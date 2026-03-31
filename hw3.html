@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston PD Shooting Incidents | Interactive Analysis</title>
+    <!-- Plotly.js CDN -->
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            background: #000000;
+            color-scheme: dark;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            background: #000000;
+            color: #e8edf4;
+            padding: 2rem 1.5rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* header & story */
+        .story-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .story-header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #7eb3e8, #f0b27a 45%, #e87a5a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .story-header p {
+            font-size: 1.1rem;
+            color: #9bb0c8;
+            max-width: 800px;
+            margin: 0.75rem auto 0;
+            opacity: 0.95;
+        }
+
+        .insight-note {
+            background: #0f1114;
+            color: #c5d0de;
+            border: 1px solid #252830;
+            border-left: 5px solid #d45a2b;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+        }
+
+        .insight-note strong {
+            color: #eef2f8;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: #0c0e12;
+            border: 1px solid #232830;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+            padding: 1rem 1rem 0.8rem 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-4px);
+            border-color: #333a48;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            padding-left: 0.5rem;
+            border-left: 4px solid #d45a2b;
+            color: #f2f5fa;
+        }
+
+        .chart-sub {
+            font-size: 0.8rem;
+            color: #8b9bb0;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .plot-container {
+            width: 100%;
+            height: 450px;
+        }
+
+        .footnote {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #6a7a8f;
+            border-top: 1px solid #1e232c;
+            padding-top: 1.8rem;
+            margin-top: 1rem;
+        }
+
+        .sources {
+            margin-top: 2rem;
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid #1e232c;
+            font-size: 0.85rem;
+            color: #8b9bb0;
+        }
+
+        .sources h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #c9d4e0;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.02em;
+        }
+
+        .sources ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1.25rem;
+            justify-content: center;
+        }
+
+        .sources li {
+            padding: 0.35rem 0.65rem;
+            background: #0f1114;
+            border: 1px solid #232830;
+            border-radius: 8px;
+            color: #e8edf4;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 880px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            body {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="story-header">
+        <h1>🔫 Boston Shooting Incidents (2023–2026)</h1>
+        <p>Shootings on the busiest corridors — by street (bars) and by police district (pie)</p>
+    </div>
+
+    <div class="insight-note">
+        📍 <strong>Key story:</strong> The top ten street names account for a large share of shooting reports. 
+        The bar chart counts <strong>incidents</strong> per street; the pie shows how many of those <strong>top-10 street names</strong> are assigned to each <strong>Boston police district</strong> 
+        Each top-10 street is assigned one primary district for the pie (e.g. three corridors → B2, five → C11).
+    </div>
+
+    <div class="grid-2">
+        <div class="chart-card">
+            <div class="chart-title">📍 Shootings per street</div>
+            <div class="chart-sub">Top 10 streets by incident count · SHOOTING=1 (2023–2026)</div>
+            <div id="bar-chart" class="plot-container"></div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-title">🏛️ How many top-10 streets per district?</div>
+            <div class="chart-sub">Pie = count of street names (from the top 10) assigned to each primary BPD district — 10 streets total</div>
+            <div id="pie-chart" class="plot-container"></div>
+        </div>
+    </div>
+
+    <div class="footnote">
+        ⚠️ Data based on official records: shootings flagged as '1'. Offense types range from aggravated assault, murder, ballistics evidence, weapon violations, etc.<br>
+        Analysis timeframe: Jan 2023 – March 2026. Each incident corresponds to a unique report.<br>
+        Pie chart: each slice is how many of the top-10 <em>street names</em> map to that district (out of 10 total); percentages sum to 100% of the street list, not incident volume.
+    </div>
+
+    <div class="sources">
+        <h3>Sources</h3>
+        <ul>
+            <li>Collab</li>
+            <li>Google</li>
+            <li>Gemini</li>
+            <li>ChatGPT</li>
+            <li>Claude</li>
+            <li>DeepSeek</li>
+            <li>Cursor</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // 1. DATA: Extracted from the provided list of shootings
+    //    (direct copy from the dataframe output + original source)
+    //    We embed the aggregated results to guarantee accuracy.
+    // --------------------------------------------------------------
+    
+    // --- Top 10 streets (from value_counts) ---
+    // Verified from python output:
+    // WASHINGTON ST    70
+    // BLUE HILL AVE    47
+    // CENTRE ST        38
+    // COLUMBIA RD      25
+    // DORCHESTER AVE   23
+    // DUDLEY ST        21
+    // WALNUT AVE       18
+    // GENEVA AVE       17
+    // BOWDOIN ST       15
+    // TALBOT AVE       15
+    const topStreets = [
+        { street: "WASHINGTON ST", count: 70 },
+        { street: "BLUE HILL AVE", count: 47 },
+        { street: "CENTRE ST", count: 38 },
+        { street: "COLUMBIA RD", count: 25 },
+        { street: "DORCHESTER AVE", count: 23 },
+        { street: "DUDLEY ST", count: 21 },
+        { street: "WALNUT AVE", count: 18 },
+        { street: "GENEVA AVE", count: 17 },
+        { street: "BOWDOIN ST", count: 15 },
+        { street: "TALBOT AVE", count: 15 }
+    ];
+    
+    // --------------------------------------------------------------
+    // 2. Build Plotly charts
+    // --------------------------------------------------------------
+    
+    const streetNames = topStreets.map(item => item.street);
+    const streetCounts = topStreets.map(item => item.count);
+
+    // Roll top-street counts into primary BPD districts (each street → one district; see page note).
+    const streetPrimaryDistrict = {
+        "WASHINGTON ST": "B2",
+        "BLUE HILL AVE": "B3",
+        "CENTRE ST": "E13",
+        "COLUMBIA RD": "C11",
+        "DORCHESTER AVE": "C11",
+        "DUDLEY ST": "B2",
+        "WALNUT AVE": "B2",
+        "GENEVA AVE": "C11",
+        "BOWDOIN ST": "C11",
+        "TALBOT AVE": "C11"
+    };
+    const districtColor = {
+        B2: "#d45a2b",
+        C11: "#4a8fd4",
+        B3: "#2b6f9e",
+        E13: "#5d9b9b"
+    };
+    const streetCountPerDistrict = {};
+    topStreets.forEach(({ street }) => {
+        const d = streetPrimaryDistrict[street];
+        streetCountPerDistrict[d] = (streetCountPerDistrict[d] || 0) + 1;
+    });
+    const pieDistrictLabels = Object.keys(streetCountPerDistrict).sort(
+        (a, b) => streetCountPerDistrict[b] - streetCountPerDistrict[a]
+    );
+    const pieDistrictValues = pieDistrictLabels.map((d) => streetCountPerDistrict[d]);
+    const pieDistrictColors = pieDistrictLabels.map(d => districtColor[d] || "#5e6f8d");
+    
+    const barTrace = {
+        x: streetNames,
+        y: streetCounts,
+        type: 'bar',
+        marker: {
+            color: streetCounts,
+            colorscale: [[0, '#2b6f9e'], [0.5, '#d97c2b'], [1, '#bc3f2e']],
+            showscale: true,
+            colorbar: {
+                title: { text: 'Count', font: { color: '#9bb0c8', size: 11 } },
+                tickfont: { color: '#9bb0c8', size: 10 },
+                thickness: 12,
+                len: 0.7,
+                bgcolor: 'rgba(12,14,18,0.85)',
+                bordercolor: '#333a48',
+                borderwidth: 1
+            },
+            line: { width: 0.5, color: '#1a1f28' }
+        },
+        text: streetCounts.map(v => String(v)),
+        textposition: 'outside',
+        textfont: { size: 11, color: '#e8edf4' },
+        hovertemplate: '<b>%{x}</b><br>Shootings: %{y}<extra></extra>'
+    };
+    
+    const barLayout = {
+        font: { color: '#c9d4e0' },
+        title: {
+            text: "<b>Shooting incidents by street (top 10)</b>",
+            font: { size: 14, color: '#f2f5fa' },
+            x: 0.02,
+            xanchor: 'left'
+        },
+        xaxis: {
+            title: { text: "Street", font: { size: 12, color: '#9bb0c8' } },
+            tickangle: -35,
+            automargin: true,
+            tickfont: { size: 10, color: '#c9d4e0' },
+            gridcolor: 'rgba(42,48,56,0.6)',
+            zeroline: false
+        },
+        yaxis: {
+            title: { text: "Number of shooting incidents", font: { size: 12, color: '#9bb0c8' } },
+            gridcolor: '#2a3038',
+            zerolinecolor: '#3d4654',
+            tickfont: { size: 10, color: '#c9d4e0' }
+        },
+        margin: { l: 55, r: 55, t: 55, b: 100 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        height: 450,
+        hoverlabel: { bgcolor: '#252b38', font: { color: '#f2f5fa', size: 13 }, bordercolor: '#3d4654' }
+    };
+    
+    const pieTrace = {
+        type: 'pie',
+        labels: pieDistrictLabels,
+        values: pieDistrictValues,
+        marker: { colors: pieDistrictColors, line: { color: '#fff', width: 1 } },
+        text: pieDistrictValues.map((v) => v + (v === 1 ? ' street' : ' streets')),
+        textinfo: 'text+percent',
+        textposition: 'inside',
+        textfont: { size: 11, color: '#fff' },
+        sort: false,
+        hovertemplate: '<b>District %{label}</b><br>Streets in top-10 list: %{value}<br>%{percent}<extra></extra>'
+    };
+    
+    const pieLayout = {
+        font: { color: '#c9d4e0' },
+        title: {
+            text: "<b>Share of the top-10 streets by district (count of street names)</b>",
+            font: { size: 14, color: '#f2f5fa' },
+            x: 0.02,
+            xanchor: 'left'
+        },
+        showlegend: true,
+        legend: {
+            orientation: 'v',
+            x: 1.02,
+            y: 1,
+            font: { size: 10, color: '#c9d4e0' },
+            bgcolor: 'rgba(0,0,0,0)',
+            bordercolor: '#333a48',
+            borderwidth: 0
+        },
+        margin: { l: 20, r: 140, t: 55, b: 20 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        height: 450,
+        hoverlabel: { bgcolor: '#252b38', font: { color: '#f2f5fa', size: 13 }, bordercolor: '#3d4654' }
+    };
+    
+    window.addEventListener('load', () => {
+        Plotly.newPlot('bar-chart', [barTrace], barLayout, { responsive: true, displayModeBar: true });
+        Plotly.newPlot('pie-chart', [pieTrace], pieLayout, { responsive: true, displayModeBar: true });
+        
+        window.addEventListener('resize', () => {
+            Plotly.relayout('bar-chart', { width: undefined, height: 450 });
+            Plotly.relayout('pie-chart', { width: undefined, height: 450 });
+        });
+    });
+    
+    console.log("Boston Shootings Dashboard | Top street: WASHINGTON ST (70) | Pie = street count per district (top 10 list)");
+</script>
+</body>
+</html>
